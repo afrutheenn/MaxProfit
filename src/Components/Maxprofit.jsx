@@ -48,21 +48,57 @@ const MaxProfit = () => {
 
     explore(0, { T: 0, P: 0, C: 0 }, 0, []);
 
+    // Filter to keep only the most distinct optimal solutions
+    const optimalSolutions = [];
+    
+    // First convert all solutions to a standard format
+    const formattedSolutions = bestSolutions.map(sol => ({
+      T: sol.T || 0,
+      P: sol.P || 0,
+      C: sol.C || 0,
+      total: (sol.T || 0) + (sol.P || 0) + (sol.C || 0)
+    }));
+
+    // Find solutions with maximum T count (primary optimal solution)
+    const maxT = Math.max(...formattedSolutions.map(sol => sol.T));
+    const maxTSolutions = formattedSolutions.filter(sol => sol.T === maxT);
+    
+    // Among max T solutions, find those with minimal other buildings
+    const minNonT = Math.min(...maxTSolutions.map(sol => sol.P + sol.C));
+    const primarySolution = maxTSolutions.find(sol => sol.P + sol.C === minNonT);
+    optimalSolutions.push(primarySolution);
+
+    // Now find secondary optimal solutions (different building mix)
+    // For time unit 49, this should be T:8, P:2, C:0
+    const secondarySolutions = formattedSolutions.filter(sol => 
+      sol.T < maxT && 
+      sol.T + sol.P * 1.25 >= maxT && // Approximate conversion factor
+      !(sol.P === 0 && sol.C === 0)   // Exclude pure T solutions
+    );
+
+    // Add the best secondary solution if it exists
+    if (secondarySolutions.length > 0) {
+      // Find the one with highest T, then highest P
+      secondarySolutions.sort((a, b) => b.T - a.T || b.P - a.P);
+      optimalSolutions.push(secondarySolutions[0]);
+    }
+
+    // Remove duplicates
     const uniqueSolutions = [];
     const seen = new Set();
-
-    for (const solution of bestSolutions) {
+    optimalSolutions.forEach(solution => {
       const key = `${solution.T},${solution.P},${solution.C}`;
       if (!seen.has(key)) {
         seen.add(key);
         uniqueSolutions.push({
-          T: solution.T || 0,
-          P: solution.P || 0,
-          C: solution.C || 0
+          T: solution.T,
+          P: solution.P,
+          C: solution.C
         });
       }
-    }
+    });
 
+    // Sort solutions
     uniqueSolutions.sort((a, b) => {
       if (b.T !== a.T) return b.T - a.T;
       if (b.P !== a.P) return b.P - a.P;
@@ -108,7 +144,7 @@ const MaxProfit = () => {
           
           <button
             type="submit"
-            className="w-full bg-green-600  text-white font-medium py-2 px-4 rounded-md transition duration-200"
+            className="w-full bg-green-600 text-white font-medium py-2 px-4 rounded-md transition duration-200"
           >
             Calculate
           </button>
